@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"math/big"
 	"net"
 	"reflect"
@@ -28,17 +27,6 @@ func StringToBytes(s string) (b []byte) {
 
 func FloatToString(f float64) string {
 	return strconv.FormatFloat(f, 'f', -1, 64)
-}
-
-func ToJson(v any) string {
-	if v == nil {
-		return ""
-	}
-	b, err := json.Marshal(v)
-	if err != nil {
-		return ""
-	}
-	return *(*string)(unsafe.Pointer(&b))
 }
 
 func Sha256(s string) string {

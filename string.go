@@ -4,6 +4,7 @@ import (
 	"strings"
 )
 
+// 填充字符串
 func PadEnd(source string, size int, padStr string) string {
 	len1 := len(source)
 	len2 := len(padStr)
@@ -20,6 +21,7 @@ func PadEnd(source string, size int, padStr string) string {
 	return source + fill[:size-len1]
 }
 
+// 填充字符串
 func PadStart(source string, size int, padStr string) string {
 	len1 := len(source)
 	len2 := len(padStr)
