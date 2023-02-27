@@ -2,7 +2,12 @@ package util
 
 import (
 	"strings"
+	"unicode/utf8"
 )
+
+func StrLen(s string) int {
+	return utf8.RuneCountInString(s)
+}
 
 // 填充字符串
 func PadEnd(source string, size int, padStr string) string {
