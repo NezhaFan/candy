@@ -19,3 +19,11 @@ func SliceConcat[T any](slice []T, slices ...[]T) []T {
 
 	return result
 }
+
+func Values[T any](m map[string]T) []T {
+	r := make([]T, 0, len(m))
+	for _, v := range m {
+		r = append(r, v)
+	}
+	return r
+}
