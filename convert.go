@@ -1,4 +1,4 @@
-package util
+package candy
 
 import (
 	"crypto/hmac"
