@@ -1,4 +1,4 @@
-package util
+package candy
 
 import (
 	"bufio"
@@ -13,8 +13,8 @@ func IsFileExist(name string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-// 对文件追加写 (文件不存在则创建)
-func AppendFile(filename string) (*os.File, error) {
+// 打开文件 (文件不存在则创建)
+func OpenFile(filename string) (*os.File, error) {
 	dir := filepath.Dir(filename)
 	if !IsFileExist(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
@@ -22,18 +22,8 @@ func AppendFile(filename string) (*os.File, error) {
 			return nil, err
 		}
 	}
-	f, err := os.OpenFile(filename, os.O_RDWR|os.O_APPEND|os.O_CREATE, os.ModePerm)
-	return f, err
-}
 
-// 清除文件内容 (文件不存在则创建)
-func TruncateFile(name string) error {
-	file, err := os.OpenFile(name, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	return file.Truncate(0)
+	return os.OpenFile(filename, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0775)
 }
 
 // 按行读取文件
@@ -52,8 +42,10 @@ func ReadFileByLine(name string) ([]string, error) {
 			if err == io.EOF {
 				err = nil
 			}
-			return strs, err
+			break
 		}
 		strs = append(strs, s)
 	}
+
+	return strs, err
 }
