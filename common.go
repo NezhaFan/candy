@@ -91,7 +91,7 @@ func IsEmpty[E comparable](e E) bool {
 }
 
 // 最大值
-func Max[T Ordered](n1 T, ns ...T) T {
+func Max[T Integer](n1 T, ns ...T) T {
 	max := n1
 	for _, n := range ns {
 		if max < n {
@@ -103,7 +103,7 @@ func Max[T Ordered](n1 T, ns ...T) T {
 }
 
 // 最小值
-func Min[T Ordered](n1 T, ns ...T) T {
+func Min[T Integer](n1 T, ns ...T) T {
 	min := n1
 	for _, n := range ns {
 		if min > n {
@@ -114,15 +114,7 @@ func Min[T Ordered](n1 T, ns ...T) T {
 	return min
 }
 
-// 除法，返回同类型，非float64
-func Div[T Integer](a, b T) T {
-	if b == 0 {
-		return T(0)
-	}
-	return a / b
-}
-
 // 除法。保留x位小数。最后一位四舍五入
-func DivFloat[T Integer](a, b T, decimals int) float64 {
+func Div[T Integer](a, b T, decimals int) float64 {
 	return Round(float64(a)/float64(b), decimals)
 }

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -48,53 +49,94 @@ func newClient() *client {
 	return c
 }
 
-func HTTPGet(api string, params map[string]string) *client {
+func HTTPGet(api string, params any) *client {
 	c := newClient()
+	c.Url = api
 	c.Method = http.MethodGet
-	if len(params) > 0 {
-		c.Url = api + "?" + string(buildQuery(params))
-	} else {
-		c.Url = api
+	if params != nil {
+		// 防止一些自定义的参数已经拼接
+		if !strings.Contains(c.Url, "?") {
+			c.Url += "?"
+		}
+		c.Url += string(buildQuery(params))
 	}
+
 	return c
 }
 
-func HttpPostJson(api string, params any) *client {
+func HTTPPostJSON(api string, params any) *client {
 	c := newClient()
 	c.Method = http.MethodPost
 	c.Url = api
 	c.Headers["Content-Type"] = "application/json"
 
-	data, err := json.Marshal(params)
-	if err == nil {
+	if params != nil {
+		// 参数限定为结构体或者map等可Json化的
+		data, err := json.Marshal(params)
+		if err != nil {
+			panic("Failed to marshal JSON response body:" + err.Error())
+		}
+
 		c.ReqBody = data
 	}
 
 	return c
 }
 
-func HttpPostForm(api string, params map[string]string) *client {
+func HTTPPostForm(api string, params any) *client {
 	c := newClient()
 	c.Method = http.MethodPost
 	c.Url = api
 	c.Headers["Content-Type"] = "application/x-www-form-urlencoded"
 
-	if len(params) > 0 {
+	if params != nil {
 		c.ReqBody = buildQuery(params)
 	}
 
 	return c
 }
 
-func (c *client) AddQuery(params map[string]string) *client {
-	s := string(buildQuery(params))
-	if strings.Contains(c.Url, "?") {
-		c.Url += "&" + s
-	} else {
-		c.Url += "?" + s
+func buildQuery(params interface{}) []byte {
+	if params == nil {
+		return nil
 	}
 
-	return c
+	tp := reflect.TypeOf(params)
+	val := reflect.ValueOf(params)
+
+	var buff bytes.Buffer
+	buff.Grow(512)
+
+	switch tp.Kind() {
+	case reflect.Map:
+		switch data := params.(type) {
+		case map[string]string:
+			for k, v := range data {
+				buff.WriteString(k + "=" + v + "&")
+			}
+		case map[string]any:
+			for k, v := range data {
+				buff.WriteString(k + "=" + fmt.Sprintf("%v", v) + "&")
+			}
+		}
+	case reflect.Pointer:
+		tp = tp.Elem()
+		val = val.Elem()
+		fallthrough
+	case reflect.Struct:
+		for i := 0; i < tp.NumField(); i++ {
+			k := tp.Field(i).Tag.Get("json")
+			if k != "" {
+				buff.WriteString(k + "=" + fmt.Sprintf("%v", val.Field(i).Interface()) + "&")
+			}
+		}
+	}
+
+	if buff.Len() == 0 {
+		panic("参数类型不支持：" + tp.Kind().String())
+	}
+
+	return buff.Bytes()[:buff.Len()-1]
 }
 
 func (c *client) AddHeader(key, value string) *client {
@@ -110,20 +152,6 @@ func (c *client) SetTimeout(d time.Duration) *client {
 func (c *client) CloseLog() *client {
 	c.OpenLog = false
 	return c
-}
-
-func buildQuery(params map[string]string) []byte {
-	if len(params) == 0 {
-		return []byte{}
-	}
-
-	var b bytes.Buffer
-	b.Grow(512)
-	for k, v := range params {
-		b.Write([]byte(k + "=" + v + "&"))
-	}
-
-	return b.Bytes()[0 : b.Len()-1]
 }
 
 func (c *client) log(start time.Time, errPtr *error) {

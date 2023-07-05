@@ -6,16 +6,16 @@ import (
 
 // go1.20新增
 const (
-	DateOnly  = "2006-01-02"
-	TimeOnly  = "15:04:05"
-	DateTime  = DateOnly + " " + TimeOnly
-	DaySecond = 86400
+	DateOnly = "2006-01-02"
+	TimeOnly = "15:04:05"
+	DateTime = DateOnly + " " + TimeOnly
 )
 
 var (
 	location *time.Location = time.Local
 )
 
+// 设置时区。(非必要不主动设置)
 func SetDefaultLocation(name string) (err error) {
 	location, err = time.LoadLocation(name)
 	return
@@ -25,73 +25,82 @@ type Timer struct {
 	t time.Time
 }
 
-func StringTime(s string) Timer {
+// 当前时间Timer
+func NowTimer() Timer {
+	return Timer{t: time.Now().In(location)}
+}
+
+// 字符串转Timer
+func StringTimer(s string) Timer {
 	t, _ := time.ParseInLocation(DateTime, s, location)
 	return Timer{t: t}
 }
 
-func UnixTime[T Unsigned](i T) Timer {
-	t := time.Unix(int64(i), 0).In(location)
+// 时间戳转Timer
+func UnixTimer(i int64) Timer {
+	t := time.Unix(i, 0)
 	return Timer{t: t}
 }
 
-func Now() Timer {
-	return Timer{t: time.Now().In(location)}
-}
-
+// Timer转Time
 func (t Timer) Time() time.Time {
 	return t.t
 }
 
+// Timer转字符串
 func (t Timer) String() string {
 	return t.t.Format(DateTime)
 }
 
-func (t Timer) Year() int {
-	return t.t.Year()
+// Timer转时间戳
+func (t Timer) Unix() int64 {
+	return t.t.Unix()
 }
 
-func (t Timer) Month() int {
-	return int(t.t.Month()) + 1
-}
-
-func (t Timer) Day() int {
-	return t.t.Day()
-}
-
-func (t Timer) Hour() int {
-	return t.t.Hour()
-}
-
-func (t Timer) Minute() int {
-	return t.t.Minute()
-}
-
-func (t Timer) Second() int {
-	return t.t.Second()
-}
-
+// 加 秒/分/时
 func (t Timer) Add(d time.Duration) Timer {
 	t.t = t.t.Add(d)
 	return t
 }
 
-func (t Timer) DayStart(add int) Timer {
+// 加天数
+func (t Timer) AddDay(i int) Timer {
+	t.t = t.t.AddDate(0, 0, i)
+	return t
+}
+
+// 加月份
+func (t Timer) AddMonth(i int) Timer {
+	t.t = t.t.AddDate(0, i, 0)
+	return t
+}
+
+// 加年
+func (t Timer) AddYear(i int) Timer {
+	t.t = t.t.AddDate(i, 0, 0)
+	return t
+}
+
+// 当日的开始时间 (00:00:00)
+func (t Timer) DayStart() Timer {
 	y, m, d := t.t.Date()
-	t.t = time.Date(y, m, d+add, 0, 0, 0, 0, location)
+	t.t = time.Date(y, m, d, 0, 0, 0, 0, location)
 	return t
 }
 
-func (t Timer) DayEnd(add int) Timer {
-	return t.DayStart(add + 1).Add(-time.Nanosecond)
+// 当日的结束时间 (23:59:59)
+func (t Timer) DayEnd() Timer {
+	return t.DayStart().Add(time.Hour*24 - time.Nanosecond)
 }
 
-func (t Timer) MonthStart(add int) Timer {
+// 当月的开始时间 (00:00:00)
+func (t Timer) MonthStart() Timer {
 	y, m, _ := t.t.Date()
-	t.t = time.Date(y, m+time.Month(add), 1, 0, 0, 0, 0, location)
+	t.t = time.Date(y, m, 1, 0, 0, 0, 0, location)
 	return t
 }
 
-func (t Timer) MonthEnd(add int) Timer {
-	return t.MonthStart(add + 1).Add(-time.Nanosecond)
+// 当月的结束时间 (23:59:59)
+func (t Timer) MonthEnd() Timer {
+	return t.MonthStart().AddMonth(1).Add(-time.Nanosecond)
 }
