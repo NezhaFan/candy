@@ -1,6 +1,7 @@
 package candy
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -10,6 +11,7 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"unicode"
 	"unicode/utf8"
 	"unsafe"
 )
@@ -82,6 +84,24 @@ func IntToIP(ip int) string {
 // 字符串长度
 func RuneLength(s string) int {
 	return utf8.RuneCountInString(s)
+}
+
+// 驼峰转下划线
+func CamelToUnderscore(s string) string {
+	var buff bytes.Buffer
+	buff.Grow(len(s))
+	for i, v := range s {
+		if unicode.IsUpper(v) {
+			if i != 0 {
+				buff.WriteRune('_')
+			}
+			buff.WriteRune(unicode.ToLower(v))
+		} else {
+			buff.WriteRune(v)
+		}
+	}
+
+	return buff.String()
 }
 
 // 是否为空值

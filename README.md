@@ -19,16 +19,6 @@
 `Div(Integer, Integer, int)` 做除法，保留x位小数
 
 
-### HTTP请求
-
-`HTTPGet(url string, params map[string]string) *client` GET请求
-`HTTPPostJSON(url string, params any) *client` POST请求，json编码
-`HTTPPostForm(url string, params map[string]string) *client` POST请求，x-www-form-urlencoded编码
-
-`type client`
-
-
-
 ### 时间操作
 > 对time.Time再封装为Timer，并非要取代time.Time，主要用于日期和月份的操作。
 
@@ -63,4 +53,59 @@ fmt.Println(next.MonthEnd().String())
 fmt.Println(now.DayStart().String())
 fmt.Println(now.DayEnd().String())
 
+```
+
+
+### HTTP请求
+
+`HTTPPostJSON(url string, params any) *client` POST请求，json编码
+`HTTPPostForm(url string, params map[string]string) *client` POST请求，x-www-form-urlencoded编码
+`HTTPGet(url string, params map[string]string) *client` GET请求
+`SetHTTPLogger(io.Writer)` 设置日志输出
+`SetHTTPTimeout(timeout time.Duration)` 设置默认超时时间 (默认10秒)
+
+`type client`
+- `AddHeader(key, value string)` 添加header
+- `SetTimeout(time.Duration)` 设置此请求超时时间 
+- `CloseLog()` 此请求关闭日志
+- `Do() ([]byte, error)` 发出请求
+- `DoAndUnmarshal(to any) error` 发出请求，并解析json结果到
+
+```go
+// 链式操作
+var req struct {
+  Id   int    `json:"id"`
+  Name string `json:"name"`
+}
+req.Id = 100
+req.Name = "Alice"
+
+var resp struct {
+  Status int    `json:"status"`
+  Msg    string `json:"msg"`
+  Data   any    `json:"data"`
+}
+
+// 简单使用
+candy.HTTPPostJSON("https://kikia.cc/api/test", &req).DoAndUnmarshal(&resp)
+fmt.Println("返回结果：", resp.Status, resp.Msg, resp.Data)
+
+// 参数 也可以用 map[string]string 。 但是禁用map[string]any.
+// 返回 也可以用 map[string]any 接收
+req2 := map[string]string{"id": "100", "name": "Alice"}
+var resp2 map[string]any
+candy.HTTPPostJSON("https://kikia.cc/api/test", &req2).DoAndUnmarshal(&resp2)
+fmt.Println("返回结果：", resp2)
+
+// 灵活运用
+client := candy.HTTPGet("https://kikia.cc/api/test", map[string]string{"Id": "123"})
+// 更多的超时时间，关闭日志记录
+client.SetTimeout(time.Second*3).CloseLog().AddHeader("Auth", "Bearer xxx")
+// 自己解析 []byte
+b, err := client.Do()
+if err != nil {
+  fmt.Println("ERROR:", err)
+} else {
+  fmt.Println("返回结果", string(b))
+}
 ```

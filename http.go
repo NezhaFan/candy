@@ -14,11 +14,18 @@ import (
 )
 
 var (
+	// 日志输出
 	httpLogger io.Writer = os.Stdout
+	// 默认超时时间
+	httpTimeout = 10 * time.Second
 )
 
 func SetHTTPLogger(logger io.Writer) {
 	httpLogger = logger
+}
+
+func SetHTTPTimeout(timeout time.Duration) {
+	httpTimeout = timeout
 }
 
 type client struct {
@@ -37,30 +44,15 @@ type client struct {
 	RespString string          `json:"resp_string,omitempty"`
 
 	// 其他
-	OpenLog bool   `json:"-"`
+	openLog bool   `json:"-"`
 	ErrMsg  string `json:"ERROR,omitempty"`
 }
 
 func newClient() *client {
 	c := &client{}
-	c.Timeout = time.Second * 10
+	c.Timeout = httpTimeout
 	c.Headers = make(map[string]string)
-	c.OpenLog = true
-	return c
-}
-
-func HTTPGet(api string, params any) *client {
-	c := newClient()
-	c.Url = api
-	c.Method = http.MethodGet
-	if params != nil {
-		// 防止一些自定义的参数已经拼接
-		if !strings.Contains(c.Url, "?") {
-			c.Url += "?"
-		}
-		c.Url += string(buildQuery(params))
-	}
-
+	c.openLog = true
 	return c
 }
 
@@ -83,6 +75,7 @@ func HTTPPostJSON(api string, params any) *client {
 	return c
 }
 
+// params参数只接受 结构体、结构体指针、map[string]string类型
 func HTTPPostForm(api string, params any) *client {
 	c := newClient()
 	c.Method = http.MethodPost
@@ -96,44 +89,60 @@ func HTTPPostForm(api string, params any) *client {
 	return c
 }
 
+// params参数只接受 结构体、结构体指针、map[string]string类型
+func HTTPGet(api string, params any) *client {
+	c := newClient()
+	c.Url = api
+	c.Method = http.MethodGet
+	if params != nil {
+		// 防止一些自定义的参数已经拼接
+		if !strings.Contains(c.Url, "?") {
+			c.Url += "?"
+		} else {
+			c.Url += "&"
+		}
+		c.Url += string(buildQuery(params))
+	}
+
+	return c
+}
+
 func buildQuery(params interface{}) []byte {
 	if params == nil {
 		return nil
 	}
 
-	tp := reflect.TypeOf(params)
-	val := reflect.ValueOf(params)
-
 	var buff bytes.Buffer
 	buff.Grow(512)
 
-	switch tp.Kind() {
-	case reflect.Map:
-		switch data := params.(type) {
-		case map[string]string:
-			for k, v := range data {
-				buff.WriteString(k + "=" + v + "&")
-			}
-		case map[string]any:
-			for k, v := range data {
-				buff.WriteString(k + "=" + fmt.Sprintf("%v", v) + "&")
-			}
+	// map[string]string
+	if data, ok := params.(map[string]string); ok {
+		for k, v := range data {
+			buff.WriteString(k + "=" + v + "&")
 		}
-	case reflect.Pointer:
-		tp = tp.Elem()
-		val = val.Elem()
-		fallthrough
-	case reflect.Struct:
-		for i := 0; i < tp.NumField(); i++ {
-			k := tp.Field(i).Tag.Get("json")
-			if k != "" {
-				buff.WriteString(k + "=" + fmt.Sprintf("%v", val.Field(i).Interface()) + "&")
-			}
-		}
+		return buff.Bytes()[:buff.Len()-1]
 	}
 
-	if buff.Len() == 0 {
-		panic("参数类型不支持：" + tp.Kind().String())
+	// 反射判断类型
+	tp := reflect.TypeOf(params)
+	val := reflect.ValueOf(params)
+
+	// 指针转一下
+	if tp.Kind() == reflect.Pointer {
+		tp = tp.Elem()
+		val = val.Elem()
+	}
+
+	// 非结构体不通过
+	if tp.Kind() != reflect.Struct {
+		panic("参数类型不支持：" + tp.String())
+	}
+
+	for i := 0; i < tp.NumField(); i++ {
+		k := tp.Field(i).Tag.Get("json")
+		if k != "" {
+			buff.WriteString(k + "=" + fmt.Sprintf("%v", val.Field(i).Interface()) + "&")
+		}
 	}
 
 	return buff.Bytes()[:buff.Len()-1]
@@ -150,7 +159,7 @@ func (c *client) SetTimeout(d time.Duration) *client {
 }
 
 func (c *client) CloseLog() *client {
-	c.OpenLog = false
+	c.openLog = false
 	return c
 }
 
@@ -191,7 +200,7 @@ func (c *client) Do() ([]byte, error) {
 
 	// 日志记录
 	start := time.Now()
-	if c.OpenLog {
+	if c.openLog {
 		defer c.log(start, &err)
 	}
 
@@ -225,8 +234,9 @@ func (c *client) Do() ([]byte, error) {
 	return c.RespBody, err
 }
 
-// 解析结果。 可以是结构体指针，也可以是 map[string]any 指针
+// 解析结果。结构体指针 或 map[string]any指针
 func (c *client) DoAndUnmarshal(to interface{}) error {
 	c.Do()
+
 	return json.Unmarshal(c.RespBody, to)
 }
