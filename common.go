@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"net"
@@ -102,6 +103,15 @@ func CamelToUnderscore(s string) string {
 	}
 
 	return buff.String()
+}
+
+// 转为JSON，且禁止转义
+func JSONMarshal(data interface{}) ([]byte, error) {
+	buffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+	err := encoder.Encode(data)
+	return buffer.Bytes(), err
 }
 
 // 是否为空值
