@@ -21,12 +21,17 @@ func SetDefaultLocation(name string) (err error) {
 	return
 }
 
+// 对时间的操作。方法不使用指针，每次对时间的操作都是独立的。
 type Timer struct {
 	t time.Time
 }
 
 // 当前时间Timer
 func NowTimer() Timer {
+	if location == time.Local {
+		return Timer{t: time.Now()}
+	}
+
 	return Timer{t: time.Now().In(location)}
 }
 
@@ -40,6 +45,15 @@ func StringTimer(s string) Timer {
 func UnixTimer(i int64) Timer {
 	t := time.Unix(i, 0)
 	return Timer{t: t}
+}
+
+// 临时更改时区
+func (t Timer) SetLocation(name string) Timer {
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		t.t = t.t.In(loc)
+	}
+	return t
 }
 
 // Timer转Time
@@ -93,10 +107,25 @@ func (t Timer) DayEnd() Timer {
 	return t.DayStart().Add(time.Hour*24 - time.Nanosecond)
 }
 
+// 当周一的开始时间
+func (t Timer) WeekStart() Timer {
+	w := t.t.Weekday()
+	if w == 0 {
+		w = 7
+	}
+	t.t = t.t.Add(-time.Duration(w-1) * time.Hour * 24)
+	return t.DayStart()
+}
+
+// 当周日的结束时间
+func (t Timer) WeekEnd() Timer {
+	return t.WeekStart().Add(time.Hour*24*7 - time.Nanosecond)
+}
+
 // 当月的开始时间 (00:00:00)
 func (t Timer) MonthStart() Timer {
 	y, m, _ := t.t.Date()
-	t.t = time.Date(y, m, 1, 0, 0, 0, 0, location)
+	t.t = time.Date(y, m, 1, 0, 0, 0, 0, t.t.Location())
 	return t
 }
 
