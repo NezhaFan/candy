@@ -1,14 +1,17 @@
-package candy
+package slicex
 
-import "golang.org/x/exp/slices"
+import (
+	"golang.org/x/exp/constraints"
+	"golang.org/x/exp/slices"
+)
 
 // 元素位置 - 从前往后
-func IndexOfSlice[E comparable](es []E, e E) int {
+func Index[E comparable](es []E, e E) int {
 	return slices.Index(es, e)
 }
 
 // 元素位置 - 从后往前
-func LastIndexOfSlice[E comparable](es []E, e E) int {
+func LastIndex[E comparable](es []E, e E) int {
 	for i := len(es) - 1; i >= 0; i-- {
 		if es[i] == e {
 			return i
@@ -18,12 +21,12 @@ func LastIndexOfSlice[E comparable](es []E, e E) int {
 }
 
 // 是否包含元素
-func ContainsOfSlice[E comparable](es []E, e E) bool {
+func Contains[E comparable](es []E, e E) bool {
 	return slices.Contains(es, e)
 }
 
 // 和
-func SumSlice[E Integer](es []E) E {
+func Sum[E constraints.Integer](es []E) E {
 	var result E
 	for _, e := range es {
 		result += e
@@ -32,19 +35,19 @@ func SumSlice[E Integer](es []E) E {
 }
 
 // 平均值
-func AverageOfSlice[E Integer](es []E) float64 {
+func Average[E constraints.Integer](es []E) float64 {
 	if len(es) == 0 {
 		return 0
 	}
 
-	return float64(SumSlice(es)) / float64(len(es))
+	return float64(Sum(es)) / float64(len(es))
 }
 
 // 去重
-func DistinctSlice[E comparable](es []E) []E {
+func Distinct[E comparable](es []E) []E {
 	result := make([]E, 0, len(es))
 	for _, e := range es {
-		if !ContainsOfSlice(result, e) {
+		if !Contains(result, e) {
 			result = append(result, e)
 		}
 	}
@@ -52,7 +55,7 @@ func DistinctSlice[E comparable](es []E) []E {
 }
 
 // 过滤
-func FilterSlice[E any](es []E, f func(E) bool) []E {
+func Filter[E interface{}](es []E, f func(E) bool) []E {
 	result := make([]E, 0, len(es))
 	for _, e := range es {
 		if f(e) {
@@ -62,8 +65,8 @@ func FilterSlice[E any](es []E, f func(E) bool) []E {
 	return result
 }
 
-// 拼接
-func ConcatSlice[E any](es ...[]E) []E {
+// 合并
+func Merge[E interface{}](es ...[]E) []E {
 	size := 0
 	for _, s := range es {
 		size += len(s)
@@ -72,15 +75,6 @@ func ConcatSlice[E any](es ...[]E) []E {
 	result := make([]E, size)
 	for i, s := range es {
 		i += copy(result[i:], s)
-	}
-	return result
-}
-
-// 转为any切片 (尽量不使用)
-func ToAnySlice[E any](es []E) []any {
-	result := make([]any, len(es))
-	for i, e := range es {
-		result[i] = e
 	}
 	return result
 }

@@ -1,6 +1,3 @@
-main.go
 tmp
-slice_test.go 
 database
 redis
-logutil

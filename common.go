@@ -15,6 +15,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 	"unsafe"
+
+	"golang.org/x/exp/constraints"
 )
 
 // bytes转字符串
@@ -105,7 +107,7 @@ func CamelToUnderscore(s string) string {
 	return buff.String()
 }
 
-// 转为JSON，且禁止转义
+// 转为JSON，禁止转义
 func JSONMarshal(data interface{}) ([]byte, error) {
 	buffer := &bytes.Buffer{}
 	encoder := json.NewEncoder(buffer)
@@ -121,7 +123,7 @@ func IsEmpty[E comparable](e E) bool {
 }
 
 // 最大值
-func Max[T Integer](n1 T, ns ...T) T {
+func Max[T constraints.Integer](n1 T, ns ...T) T {
 	max := n1
 	for _, n := range ns {
 		if max < n {
@@ -133,7 +135,7 @@ func Max[T Integer](n1 T, ns ...T) T {
 }
 
 // 最小值
-func Min[T Integer](n1 T, ns ...T) T {
+func Min[T constraints.Integer](n1 T, ns ...T) T {
 	min := n1
 	for _, n := range ns {
 		if min > n {
@@ -145,6 +147,6 @@ func Min[T Integer](n1 T, ns ...T) T {
 }
 
 // 除法。保留x位小数。最后一位四舍五入
-func Div[T Integer](a, b T, decimals int) float64 {
+func Div[T constraints.Integer](a, b T, decimals int) float64 {
 	return Round(float64(a)/float64(b), decimals)
 }
