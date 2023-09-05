@@ -1,18 +1,16 @@
 package redisx
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"math/rand"
 	"time"
 )
 
 var (
 	// 并发加锁重试次数
-	retryTimes = 30
+	retryTimes = 100
 	// 并发加锁重试间隔
-	retryInterval = 20 * time.Millisecond
+	retryInterval = 50 * time.Millisecond
 	// 锁超时自动释放时间 (防止特殊情况未解锁)
 	maxLockTime = 10 * time.Second
 	// 随机数
@@ -24,28 +22,20 @@ var (
 )
 
 type Lock struct {
-	ctx context.Context
-	key string
-	id  int32
+	base
+	id int32
 }
 
 func NewLock(key string) *Lock {
 	lock := &Lock{
-		ctx: context.Background(),
-		key: key,
-		id:  random.Int31(),
+		base: newBase("lock:" + key),
+		id:   random.Int31(),
 	}
 
 	return lock
 }
 
-func (lock *Lock) SetContext(ctx context.Context) *Lock {
-	lock.ctx = ctx
-	return lock
-}
-
 func (lock *Lock) TryLock() (bool, error) {
-	fmt.Println("尝试加锁", time.Now().UnixMilli())
 	return rdb.SetNX(lock.ctx, lock.key, lock.id, maxLockTime).Result()
 }
 
@@ -64,7 +54,6 @@ func (lock *Lock) Lock() error {
 			}
 			// 加锁成功
 			if ok {
-				fmt.Println("加锁成功")
 				return nil
 			}
 
@@ -87,5 +76,4 @@ end`
 
 func (lock *Lock) Unlock() {
 	rdb.Eval(lock.ctx, delCommand, []string{lock.key}, lock.id)
-	fmt.Println("释放锁", lock.id)
 }

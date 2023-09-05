@@ -6,37 +6,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
 var (
-	// 日志输出
-	httpLogger io.Writer = os.Stdout
 	// 默认超时时间
 	httpTimeout = 10 * time.Second
 )
 
 func SetLogger(w io.Writer) {
 	httpLogger = w
-}
-
-type httpLog struct {
-	Time string `json:"time"`
-	Cost int64  `json:"cost"`
-
-	Request struct {
-		Url    string      `json:"url"`
-		Method string      `json:"method"`
-		Data   interface{} `json:"data"`
-	} `json:"request"`
-
-	Response struct {
-		Status int             `json:"status"`
-		Data   json.RawMessage `json:"data,omitempty"`
-	} `json:"response"`
-
-	Error string `json:"ERROR,omitempty"`
 }
 
 type httpx struct {
@@ -51,7 +30,7 @@ type httpx struct {
 	err      error
 }
 
-func HTTPGet(url string, params map[string]string) *httpx {
+func Get(url string, params map[string]string) *httpx {
 	var x httpx
 	if len(params) > 0 {
 		var buff bytes.Buffer
@@ -71,7 +50,7 @@ func HTTPGet(url string, params map[string]string) *httpx {
 	return &x
 }
 
-func HTTPPost(url string, data interface{}) *httpx {
+func Post(url string, data interface{}) *httpx {
 	var x httpx
 	var body io.Reader
 	if data != nil {
@@ -89,7 +68,7 @@ func HTTPPost(url string, data interface{}) *httpx {
 	return &x
 }
 
-func HTTPPostForm(url string, data map[string]string) *httpx {
+func PostForm(url string, data map[string]string) *httpx {
 	var x httpx
 	var body io.Reader
 	if data != nil {
@@ -130,7 +109,7 @@ func (x *httpx) CloseLog() *httpx {
 // 发送请求，无法记录返回的数据，须主动关闭Body
 func (x *httpx) Send() (*http.Response, error) {
 	if !x.closeLog {
-		defer x.printLog(time.Now())
+		defer printLog(time.Now(), x)
 	}
 
 	x.send()
@@ -138,10 +117,21 @@ func (x *httpx) Send() (*http.Response, error) {
 	return x.response, x.err
 }
 
+// 发送请求，并且通过回调函数处理，内部返回数据，用来日志记录
+func (x *httpx) SendAndDeal(callback func(*http.Response, error) []byte) {
+	if !x.closeLog {
+		defer printLog(time.Now(), x)
+	}
+
+	x.send()
+	x.responseData = callback(x.response, x.err)
+	x.request.Body.Close()
+}
+
 // 发送请求，解析返回的json
 func (x *httpx) SendAndParse(to interface{}) error {
 	if !x.closeLog {
-		defer x.printLog(time.Now())
+		defer printLog(time.Now(), x)
 	}
 
 	x.send()
@@ -175,34 +165,4 @@ func (x *httpx) send() {
 	if x.err == nil && x.response.StatusCode != http.StatusOK {
 		x.err = fmt.Errorf("%d %s", x.response.StatusCode, http.StatusText(x.response.StatusCode))
 	}
-}
-
-func (x *httpx) printLog(start time.Time) {
-	var hlog httpLog
-
-	hlog.Time = start.Format("2006-01-02 15:04:05")
-	hlog.Cost = time.Since(start).Milliseconds()
-
-	hlog.Request.Url = x.request.URL.String()
-	hlog.Request.Method = x.request.Method
-	hlog.Request.Data = x.requestData
-
-	hlog.Response.Data = x.responseData
-	if x.response != nil {
-		hlog.Response.Status = x.response.StatusCode
-	}
-
-	if x.err != nil {
-		hlog.Error = x.err.Error()
-	}
-
-	var buff bytes.Buffer
-	enc := json.NewEncoder(&buff)
-	enc.SetEscapeHTML(false)
-	err := enc.Encode(&hlog)
-	if err != nil {
-		httpLogger.Write([]byte("ERROR: " + err.Error()))
-	}
-	httpLogger.Write(buff.Bytes())
-	httpLogger.Write([]byte("\r\n"))
 }

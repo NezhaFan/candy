@@ -1,3 +1,7 @@
 tmp
 database
 redis
+redisx
+dbx
+main_test.go
+main.go

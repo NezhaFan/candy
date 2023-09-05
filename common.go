@@ -16,7 +16,7 @@ import (
 	"unicode/utf8"
 	"unsafe"
 
-	"golang.org/x/exp/constraints"
+	"github.com/tomatocuke/candy/typex"
 )
 
 // bytes转字符串
@@ -122,31 +122,28 @@ func IsEmpty[E comparable](e E) bool {
 	return zero == e
 }
 
-// 最大值
-func Max[T constraints.Integer](n1 T, ns ...T) T {
-	max := n1
-	for _, n := range ns {
-		if max < n {
-			max = n
-		}
-	}
-
-	return max
-}
-
-// 最小值
-func Min[T constraints.Integer](n1 T, ns ...T) T {
-	min := n1
-	for _, n := range ns {
-		if min > n {
-			min = n
-		}
-	}
-
-	return min
-}
-
 // 除法。保留x位小数。最后一位四舍五入
-func Div[T constraints.Integer](a, b T, decimals int) float64 {
+func Div[T typex.Integer](a, b T, decimals int) float64 {
+	if b == 0 {
+		return 0
+	}
 	return Round(float64(a)/float64(b), decimals)
+}
+
+// 转字符串数组
+func ToStringArray[E typex.Integer](arr []E) []string {
+	r := make([]string, len(arr))
+	for i, v := range arr {
+		r[i] = strconv.Itoa(int(v))
+	}
+	return r
+}
+
+// 转任意类型数组
+func ToAnyArray[E any](arr []E) []any {
+	r := make([]any, len(arr))
+	for i, v := range arr {
+		r[i] = v
+	}
+	return r
 }

@@ -6,10 +6,6 @@ type Map[K comparable, V interface{}] struct {
 	data sync.Map
 }
 
-func NewMap[K comparable, V interface{}]() *Map[K, V] {
-	return &Map[K, V]{}
-}
-
 func (m *Map[K, V]) Set(key K, value V) {
 	m.data.Store(key, value)
 }
@@ -35,7 +31,7 @@ func (m *Map[K, V]) MGet(keys []K) map[K]V {
 }
 
 func (m *Map[K, V]) Has(key K) bool {
-	_, ok := m.Get(key)
+	_, ok := m.data.Load(key)
 	return ok
 }
 

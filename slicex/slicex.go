@@ -1,8 +1,9 @@
 package slicex
 
 import (
-	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
+
+	"github.com/tomatocuke/candy/typex"
 )
 
 // 元素位置 - 从前往后
@@ -26,7 +27,7 @@ func Contains[E comparable](es []E, e E) bool {
 }
 
 // 和
-func Sum[E constraints.Integer](es []E) E {
+func Sum[E typex.Integer](es []E) E {
 	var result E
 	for _, e := range es {
 		result += e
@@ -35,7 +36,7 @@ func Sum[E constraints.Integer](es []E) E {
 }
 
 // 平均值
-func Average[E constraints.Integer](es []E) float64 {
+func Average[E typex.Integer](es []E) float64 {
 	if len(es) == 0 {
 		return 0
 	}

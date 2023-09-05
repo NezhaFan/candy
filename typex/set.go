@@ -1,14 +1,12 @@
 package typex
 
-import "sync"
+import (
+	"sync"
+)
 
 type Set[E comparable] struct {
 	mu   sync.RWMutex
 	data map[E]struct{}
-}
-
-func NewSet[E comparable]() *Set[E] {
-	return &Set[E]{}
 }
 
 func (s *Set[E]) Set(es ...E) {
