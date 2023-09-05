@@ -6,22 +6,20 @@ import (
 )
 
 var (
-	LowerLettersCharset = []rune("abcdefghijklmnopqrstuvwxyz")
-	UpperLettersCharset = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	LettersCharset      = append(LowerLettersCharset, UpperLettersCharset...)
-	NumbersCharset      = []rune("0123456789")
-	AlphanumericCharset = append(LettersCharset, NumbersCharset...)
-	SpecialCharset      = []rune("!@#$%^&*()_+-=[]{}|;':\",./<>?")
-	AllCharset          = append(AlphanumericCharset, SpecialCharset...)
+	CharsetLowerLetter = []rune("abcdefghijklmnopqrstuvwxyz")
+	CharsetUpperLetter = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	CharsetLetter      = append(CharsetLowerLetter, CharsetUpperLetter...)
+	CharsetNumber      = []rune("0123456789")
+	CharsetAlpha       = append(CharsetLetter, CharsetNumber...)
+	CharsetSpecial     = []rune("!@#$%^&*()_+-=[]{}|;':\",./<>?")
+	CharsetAll         = append(CharsetAlpha, CharsetSpecial...)
 )
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
+var rd = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // 随机数
 func RandInt(max int) int {
-	return rand.Intn(max)
+	return rd.Intn(max)
 }
 
 // 随机字符串，自定义字符集
@@ -36,7 +34,8 @@ func RandString(size int, charset []rune) string {
 	b := make([]rune, size)
 	charsetLen := len(charset)
 	for i := range b {
-		b[i] = charset[rand.Intn(charsetLen)]
+		b[i] = charset[rd.Intn(charsetLen)]
 	}
+
 	return string(b)
 }

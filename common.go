@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-	"reflect"
 	"strconv"
 	"unicode"
 	"unicode/utf8"
@@ -21,17 +20,19 @@ import (
 
 // bytes转字符串
 func BytesToString(b []byte) string {
-	return *(*string)(unsafe.Pointer(&b))
+	if len(b) == 0 {
+		return ""
+	}
+	return unsafe.String(&b[0], len(b))
 }
 
 // 字符串转bytes
 func StringToBytes(s string) (b []byte) {
-	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
-	bh.Data = sh.Data
-	bh.Cap = sh.Len
-	bh.Len = sh.Len
-	return b
+	if s == "" {
+		return nil
+	}
+
+	return unsafe.Slice(unsafe.StringData(s), len(s))
 }
 
 // 浮点数转字符串

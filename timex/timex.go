@@ -2,13 +2,6 @@ package timex
 
 import "time"
 
-// go1.20新增
-const (
-	DateOnly = "2006-01-02"
-	TimeOnly = "15:04:05"
-	DateTime = DateOnly + " " + TimeOnly
-)
-
 var (
 	location *time.Location = time.Local
 )
@@ -30,7 +23,7 @@ func New(t interface{}) Timex {
 	case int64:
 		return Timex{t: time.Unix(v, 0)}
 	case string:
-		t, _ := time.ParseInLocation(DateTime, v, location)
+		t, _ := time.ParseInLocation(time.DateTime, v, location)
 		return Timex{t: t}
 	default:
 		return Timex{t: time.Now().In(location)}
@@ -44,7 +37,7 @@ func (t Timex) Time() time.Time {
 
 // Timex转字符串
 func (t Timex) String() string {
-	return t.t.Format(DateTime)
+	return t.t.Format(time.DateTime)
 }
 
 // Timex转时间戳
