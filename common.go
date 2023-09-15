@@ -10,8 +10,9 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"reflect"
 	"strconv"
-	"unicode"
+	"strings"
 	"unicode/utf8"
 	"unsafe"
 
@@ -31,13 +32,51 @@ func StringToBytes(s string) (b []byte) {
 	if s == "" {
 		return nil
 	}
-
 	return unsafe.Slice(unsafe.StringData(s), len(s))
 }
 
 // 浮点数转字符串
 func FloatToString(n float64) string {
 	return strconv.FormatFloat(float64(n), 'f', -1, 64)
+}
+
+// 转字符串。优先根据类型来，能转json转json，最终才用fmt格式化
+func AnyToString(x any) string {
+	switch v := x.(type) {
+	case string:
+		return v
+	case int:
+		return strconv.FormatInt(int64(v), 10)
+	case int64:
+		return strconv.FormatInt(v, 10)
+	case int32:
+		return strconv.FormatInt(int64(v), 10)
+	case int16:
+		return strconv.FormatInt(int64(v), 10)
+	case int8:
+		return strconv.FormatInt(int64(v), 10)
+	case uint64:
+		return strconv.FormatUint(v, 10)
+	case uint32:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint16:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint8:
+		return strconv.FormatUint(uint64(v), 10)
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	case float32:
+		return strconv.FormatFloat(float64(v), 'f', -1, 64)
+	case bool:
+		return strconv.FormatBool(v)
+	default:
+		b, err := json.Marshal(x)
+		if err != nil {
+			return BytesToString(b)
+		}
+		// 最劣的方式
+		return fmt.Sprintf("%v", x)
+	}
 }
 
 // 浮点数保留x位小数，最后一位四舍五入
@@ -86,30 +125,33 @@ func IntToIP(ip int) string {
 }
 
 // 字符串长度
-func RuneLength(s string) int {
+func StrLen(s string) int {
 	return utf8.RuneCountInString(s)
 }
 
-// 驼峰转下划线
-func CamelToUnderscore(s string) string {
-	var buff bytes.Buffer
-	buff.Grow(len(s))
-	for i, v := range s {
-		if unicode.IsUpper(v) {
+const (
+	letterDiff = 'a' - 'A'
+)
+
+// 蛇形命名，下划线格式
+func SnakeCase(s string) string {
+	b := make([]byte, 0, len(s)+3)
+	for i := 0; i < len(s); i++ {
+		v := s[i]
+		if v >= 'A' && v <= 'Z' {
 			if i != 0 {
-				buff.WriteRune('_')
+				b = append(b, '_')
 			}
-			buff.WriteRune(unicode.ToLower(v))
-		} else {
-			buff.WriteRune(v)
+			v += letterDiff
 		}
+		b = append(b, v)
 	}
 
-	return buff.String()
+	return BytesToString(b)
 }
 
 // 转为JSON，禁止转义
-func JSONMarshal(data interface{}) ([]byte, error) {
+func JsonEncode(data interface{}) ([]byte, error) {
 	buffer := &bytes.Buffer{}
 	encoder := json.NewEncoder(buffer)
 	encoder.SetEscapeHTML(false)
@@ -131,20 +173,62 @@ func Div[T typex.Integer](a, b T, decimals int) float64 {
 	return Round(float64(a)/float64(b), decimals)
 }
 
-// 转字符串数组
-func ToStringArray[E typex.Integer](arr []E) []string {
+// 转字符串切片
+func ToStringSlice[E typex.Integer](arr []E) []string {
 	r := make([]string, len(arr))
 	for i, v := range arr {
-		r[i] = strconv.Itoa(int(v))
+		r[i] = strconv.FormatInt(int64(v), 10)
 	}
 	return r
 }
 
-// 转任意类型数组
-func ToAnyArray[E any](arr []E) []any {
+// 转任意类型切片
+func ToAnySlice[E any](arr []E) []any {
 	r := make([]any, len(arr))
 	for i, v := range arr {
 		r[i] = v
 	}
 	return r
+}
+
+// 结构体、结构体指针、结构体切片
+func GetTag(v any, tag string) []string {
+	var tp reflect.Type
+	if x, ok := v.(reflect.Type); ok {
+		tp = x
+	} else {
+		tp = reflect.TypeOf(v)
+	}
+
+	if tp.Kind() == reflect.Ptr {
+		tp = tp.Elem()
+	}
+
+	if tp.Kind() == reflect.Slice {
+		tp = tp.Elem()
+	}
+
+	n := tp.NumField()
+	result := make([]string, 0, n)
+	for i := 0; i < n; i++ {
+		field := tp.Field(i)
+		s := field.Tag.Get(tag)
+		if s == "-" {
+			continue
+		}
+		// json:"xxx,omitempty"
+		if s != "" {
+			if idx := strings.IndexByte(s, ','); idx > -1 {
+				s = s[0:idx]
+			}
+		}
+		// 如果有标签则记录，如果没标签，判断是否为嵌套的结构体
+		if s != "" {
+			result = append(result, s)
+		} else if field.Type.Kind() == reflect.Struct {
+			result = append(result, GetTag(field.Type, tag)...)
+		}
+	}
+
+	return result
 }
