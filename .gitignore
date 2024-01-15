@@ -1,7 +1,6 @@
 tmp
 database
-redis
-redisx
+redis.go
 dbx
 main_test.go
 main.go

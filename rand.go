@@ -25,10 +25,11 @@ func RandInt(max int) int {
 // 随机字符串，自定义字符集
 func RandString(size int, charset []rune) string {
 	if size <= 0 {
-		panic("size must be greater than 0")
+		return ""
 	}
+
 	if len(charset) == 0 {
-		panic("charset must not be empty")
+		charset = CharsetAlpha
 	}
 
 	b := make([]rune, size)

@@ -1,4 +1,4 @@
-package typex
+package candy
 
 import (
 	"sync"
@@ -45,6 +45,6 @@ func (s *Set[E]) Len() int {
 
 func (s *Set[E]) Clear() {
 	s.mu.Lock()
-	s.data = make(map[E]struct{})
+	clear(s.data)
 	s.mu.Unlock()
 }

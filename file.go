@@ -1,4 +1,4 @@
-package filex
+package candy
 
 import (
 	"bufio"
@@ -8,15 +8,15 @@ import (
 )
 
 // 判断文件是否存在
-func Exists(name string) bool {
-	_, err := os.Stat(name)
-	return err == nil || os.IsExist(err)
+func FileExists(filename string) bool {
+	_, err := os.Stat(filename)
+	return !os.IsNotExist(err)
 }
 
 // 打开文件 (文件不存在则创建)
-func Open(filename string) (*os.File, error) {
+func FileOpen(filename string) (*os.File, error) {
 	dir := filepath.Dir(filename)
-	if !Exists(dir) {
+	if !FileExists(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
 			return nil, err
@@ -27,25 +27,24 @@ func Open(filename string) (*os.File, error) {
 }
 
 // 按行读取文件
-func ReadByLine(name string) ([]string, error) {
-	file, err := os.Open(name)
+func ReadByLine(filename string, fn func(string) error) error {
+	file, err := os.Open(filename)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer file.Close()
 
-	strs := make([]string, 0, 256)
 	r := bufio.NewReader(file)
 	for {
 		s, err := r.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				err = nil
-			}
-			break
+		if err == io.EOF {
+			return nil
 		}
-		strs = append(strs, s)
+		if err == nil {
+			err = fn(s)
+		}
+		if err != nil {
+			return err
+		}
 	}
-
-	return strs, err
 }
