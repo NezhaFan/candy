@@ -80,9 +80,9 @@ func GetTags(v any, tag string) []string {
 }
 
 // 追踪调用位置
-func Callers() []string {
+func Callers(skip int) []string {
 	pc := make([]uintptr, 10)
-	n := runtime.Callers(2, pc)
+	n := runtime.Callers(skip, pc)
 	if n == 0 {
 		return nil
 	}

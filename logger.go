@@ -167,7 +167,7 @@ func write(l *Logger, level level, args ...any) {
 
 	if level == levelError {
 		buf.Bytes()[len(buf.Bytes())-1] = ' '
-		b, _ := json.Marshal(Callers()[3:])
+		b, _ := json.Marshal(Callers(2)[3:])
 		buf.Write(b)
 		buf.WriteByte('\n')
 		errorLogger.Write(buf.Bytes())

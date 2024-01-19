@@ -8,15 +8,15 @@ import (
 )
 
 // 判断文件是否存在
-func FileExists(filename string) bool {
+func ExistsFile(filename string) bool {
 	_, err := os.Stat(filename)
 	return !os.IsNotExist(err)
 }
 
 // 打开文件 (文件不存在则创建)
-func FileOpen(filename string) (*os.File, error) {
+func OpenFile(filename string) (*os.File, error) {
 	dir := filepath.Dir(filename)
-	if !FileExists(dir) {
+	if !ExistsFile(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
 			return nil, err
@@ -27,23 +27,23 @@ func FileOpen(filename string) (*os.File, error) {
 }
 
 // 按行读取文件
-func ReadByLine(filename string, fn func(string) error) error {
-	file, err := os.Open(filename)
+func ReadFileByLine(filename string, fn func(string) error) error {
+	osfile, err := os.Open(filename)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer osfile.Close()
 
-	r := bufio.NewReader(file)
+	r := bufio.NewReader(osfile)
 	for {
 		s, err := r.ReadString('\n')
-		if err == io.EOF {
-			return nil
-		}
 		if err == nil {
 			err = fn(s)
 		}
 		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
 			return err
 		}
 	}

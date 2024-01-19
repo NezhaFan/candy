@@ -1,5 +1,6 @@
 tmp
 database
+redisx
 redis.go
 dbx
 main_test.go
