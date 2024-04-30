@@ -5,8 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
-	"fmt"
 	"math/big"
 	"net"
 	"strconv"
@@ -92,47 +90,4 @@ func SnakeCase(s string) string {
 	}
 
 	return BytesToString(b)
-}
-
-func AnyToString(v any) string {
-	switch x := v.(type) {
-	case string:
-		return x
-	case []byte:
-		return BytesToString(x)
-	case int:
-		return strconv.Itoa(x)
-	case int8:
-		return strconv.Itoa(int(x))
-	case int16:
-		return strconv.Itoa(int(x))
-	case int32:
-		return strconv.Itoa(int(x))
-	case int64:
-		return strconv.Itoa(int(x))
-	case uint:
-		return strconv.Itoa(int(x))
-	case uint8:
-		return strconv.Itoa(int(x))
-	case uint16:
-		return strconv.Itoa(int(x))
-	case uint32:
-		return strconv.Itoa(int(x))
-	case uint64:
-		return strconv.FormatUint(x, 64)
-	case float32:
-		return strconv.FormatFloat(float64(x), 'f', -1, 64)
-	case float64:
-		return strconv.FormatFloat(x, 'f', -1, 64)
-	case bool:
-		return strconv.FormatBool(x)
-	case error:
-		return x.Error()
-	default:
-		b, err := json.Marshal(v)
-		if err != nil {
-			return fmt.Sprintf("%v", v)
-		}
-		return BytesToString(b)
-	}
 }
