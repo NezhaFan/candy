@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"testing"
 	"time"
@@ -62,37 +63,38 @@ func BenchmarkString(b *testing.B) {
 }
 
 func TestBitmap(t *testing.T) {
-	bitmap := NewBitmap("test-bitmap")
-	defer bitmap.Del()
+	bitmap1 := NewBitmap("test-bitmap1")
+	defer bitmap1.Del()
+
+	bitmap1.SetBit(0, 1)
+	if bitmap1.GetBit(0) != 1 {
+		t.Fatal("wrong")
+	}
+	var max uint32 = math.MaxUint32
+	bitmap1.SetBit(max, 1)
+	if bitmap1.GetBit(max) != 1 {
+		t.Fatal("wrong")
+	}
+
+	// 假设n个用户都在第一天和当年最后一天签到，闰年。
+	// 假设我有1000万个用户
+	bitmap2 := NewBitmap("test-bitmap2")
+	defer bitmap2.Del()
 
 	const year = 366
-	// 假设用户id分别为0、1、10000
-	var id0, id1, id10000 int64 = 0, 1, 10000
+	ids := [...]uint32{1, 2, 67890}
 
-	// 用户1三天
-	bitmap.SetBit(id0*year+1, 1)
-	bitmap.SetBit(id0*year+365, 1)
-	bitmap.SetBit(id0*year+366, 1)
-	// 用户1二天
-	bitmap.SetBit(id1*year+1, 1)
-	bitmap.SetBit(id1*year+365, 1)
-	// 用户10000二天
-	bitmap.SetBit(id10000*year+1, 1)
-	bitmap.SetBit(id10000*year+365, 1)
+	for _, id := range ids {
+		// 第一天
+		bitmap2.SetBit(id*year+1, 1)
+		// 最后一天
+		bitmap2.SetBit(id*year+366, 1)
+		// 统计
+		n := bitmap2.BitCount(id*year+1, id*year+366)
+		fmt.Println(fmt.Sprintf("用户%d登录天数:", id), n)
+	}
 
-	n := bitmap.GetBit(id10000*year + 365)
-	fmt.Println("getbit", id10000*year+365, ":", n)
-
-	n = bitmap.BitCount(id0*year+1, id0*year+year)
-	fmt.Println("用户1登录天数:", n)
-
-	n = bitmap.BitCount(id1*year+1, id1*year+year)
-	fmt.Println("用户2登录天数:", n)
-
-	n = bitmap.BitCount(id10000*year+1, id10000*year+year)
-	fmt.Println("用户10000登录天数:", n)
-
-	fmt.Println("总计数：", bitmap.BitCount(0, -1))
+	fmt.Println("总计数：", bitmap2.BitCount(0, math.MaxUint32))
 }
 
 func TestHash(t *testing.T) {

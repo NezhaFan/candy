@@ -12,18 +12,18 @@ func NewBitmap(key string) bitmap {
 }
 
 // 设置，val值为0或1。
-func (b bitmap) SetBit(offset int64, val int) error {
-	return rdb.SetBit(ctx, b.key, offset, val).Err()
+func (b bitmap) SetBit(offset uint32, val int) error {
+	return rdb.SetBit(ctx, b.key, int64(offset), val).Err()
 }
 
 // 获取
-func (b bitmap) GetBit(offset int64) int64 {
-	return rdb.GetBit(ctx, b.key, offset).Val()
+func (b bitmap) GetBit(offset uint32) int64 {
+	return rdb.GetBit(ctx, b.key, int64(offset)).Val()
 }
 
 // 获取范围内1的个数，带BIT参数为>7.0版本支持。
 // 不带BIT的BITCOUNT为按照bytes统计，如果一个bytes被分割为两个区域，难以统计
-func (b bitmap) BitCount(start, end int64) int64 {
+func (b bitmap) BitCount(start, end uint32) int64 {
 	args := []any{"BITCOUNT", b.key, start, end, "BIT"}
 	v := rdb.Do(ctx, args...).Val()
 	if n, ok := v.(int64); ok {
