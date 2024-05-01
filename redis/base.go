@@ -29,6 +29,20 @@ func Connect(addr string, auth string) error {
 	return rdb.Ping(ctx).Err()
 }
 
+func Get() *redis.Client {
+	return rdb
+}
+
+func Do(args ...any) (any, error) {
+	return rdb.Do(ctx, args...).Result()
+}
+
+// 最后需要pipe.Exec()执行
+func Pipeline() redis.Pipeliner {
+	pipe := rdb.Pipeline()
+	return pipe
+}
+
 type base struct {
 	key string
 }
@@ -48,13 +62,4 @@ func (b base) Del() bool {
 
 func (b base) TTL() time.Duration {
 	return rdb.TTL(ctx, b.key).Val()
-}
-
-func (b base) Do(args ...any) (any, error) {
-	args = append([]any{b.key}, args...)
-	return rdb.Do(ctx, args...).Result()
-}
-func Pipeline() redis.Pipeliner {
-	pipe := rdb.Pipeline()
-	return pipe
 }

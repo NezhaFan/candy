@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -77,7 +78,6 @@ func TestBitmap(t *testing.T) {
 	}
 
 	// 假设n个用户都在第一天和当年最后一天签到，闰年。
-	// 假设我有1000万个用户
 	bitmap2 := NewBitmap("test-bitmap2")
 	defer bitmap2.Del()
 
@@ -255,6 +255,95 @@ func TestZSet(t *testing.T) {
 
 }
 
+func TestGeo(t *testing.T) {
+	geo := NewGeo("test-geo")
+	// defer geo.Del()
+
+	// 添加坐标，其中 BCDE距离相近，C和E相同
+	geo.GeoAdd("A", 13.361389, 38.115556)
+	geo.GeoAdd("B", 15.077268, 37.502669)
+	geo.GeoAdd("C", 15.087268, 37.502669)
+	geo.GeoAdd("D", 15.067268, 37.502669)
+	geo.GeoAdd("E", 15.087268, 37.502669)
+
+	dist := geo.GeoDist("A", "B")
+	fmt.Println("A和B的距离", dist)
+
+	dist = geo.GeoDist("B", "C")
+	fmt.Println("B和C的距离", dist)
+
+	dist = geo.GeoDist("D", "F")
+	fmt.Println("D和F的距离", dist)
+
+	pos := geo.GeoPos("C", "F")
+	fmt.Println("C的经纬度", pos[0], "F的经纬度", pos[1])
+
+	locations := geo.GeoSearchByCoord(pos[0].Longitude, pos[0].Latitude, 2000, 10, false, true, false)
+	fmt.Println("C半径范围2000米内成员(按坐标)(不排序)", locations)
+
+	locations = geo.GeoSearchByMember("C", 2000, 10, false, true, true)
+	fmt.Println("C半径范围2000米内成员(按成员)(正序)", locations)
+
+}
+
+func TestStream(t *testing.T) {
+	count := 1000
+	// 生产者
+	stream := NewStream("test-stream")
+	defer stream.Del()
+	fmt.Println("stream中插入", count, "条消息")
+	wg := &sync.WaitGroup{}
+	wg.Add(count)
+	for i := 0; i < count; i++ {
+		go func() {
+			defer wg.Done()
+			_, err := stream.XAdd("", map[string]any{"id": ""})
+			if err != nil {
+				panic(err)
+			}
+		}()
+	}
+
+	// 创建组，并且绑定生产者
+	group1 := NewGroup("group1", stream)
+	fmt.Println("创建组group1读取stream")
+	group2 := NewGroup("group2", stream)
+	fmt.Println("创建组group2读取stream")
+
+	// 消费者
+	fmt.Println("创建2个消费者。其中A和B在group1竞争stream消息，但是A在group2独享stream消息")
+	var limit int64 = 10
+	a1 := NewConsumer("A", group1, limit)
+	b1 := NewConsumer("B", group1, limit)
+	a2 := NewConsumer("A", group2, limit)
+
+	cs := []consumer{a1, b1, a2}
+	counter := []int64{0, 0, 0}
+
+	for i, c := range cs {
+		go func(i int, c consumer) {
+			for {
+				rs, err := c.Read()
+				if err != nil {
+					break
+				}
+
+				atomic.AddInt64(&counter[i], int64(len(rs)))
+
+				for _, r := range rs {
+					go c.Ack(r.ID)
+				}
+				// fmt.Println("消费者", cs[i].args.Consumer, "从", cs[i].args.Group, "读取到：", rs)
+			}
+		}(i, c)
+	}
+
+	wg.Wait()
+	time.Sleep(time.Second * 2)
+
+	fmt.Println("分别收到消息数:", counter, "结果校验：", counter[0]+counter[1]+counter[2] == int64(count*2))
+}
+
 func BenchmarkMutex(b *testing.B) {
 	wg := &sync.WaitGroup{}
 	wg.Add(b.N)
@@ -262,7 +351,7 @@ func BenchmarkMutex(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		go func(i int) {
 			defer wg.Done()
-			mutex := NewMutex(context.Background(), "mutex")
+			mutex := NewMutex(context.Background(), "mutex").WithRetryTime(time.Millisecond * 2)
 			if err := mutex.Lock(); err != nil {
 				panic(err)
 			}
@@ -272,5 +361,6 @@ func BenchmarkMutex(b *testing.B) {
 	}
 
 	wg.Wait()
+	fmt.Println("每个goroutine重试间隔2ms，睡眠2ms")
 	fmt.Println("尝试次数", b.N, "耗时", time.Since(start).Milliseconds(), "ms")
 }

@@ -13,7 +13,7 @@ var (
 	// 锁自动释放时间
 	maxTimeout = strconv.Itoa(int(time.Second * 60))
 	// 重试间隔
-	retryInterval = 10 * time.Millisecond
+	retryTime = 10 * time.Millisecond
 	// 初始时间
 	initUnixNano = time.Now().UnixNano()
 	// 随机数
@@ -21,17 +21,24 @@ var (
 )
 
 type mutex struct {
-	ctx context.Context
-	key string
-	id  string
+	ctx       context.Context
+	key       string
+	id        string
+	retryTime time.Duration
 }
 
 func NewMutex(ctx context.Context, key string) *mutex {
 	return &mutex{
-		ctx: ctx,
-		key: key,
-		id:  strconv.Itoa(int(initUnixNano + rd.Int63())),
+		ctx:       ctx,
+		key:       key,
+		id:        strconv.Itoa(int(initUnixNano + rd.Int63())),
+		retryTime: retryTime,
 	}
+}
+
+func (m *mutex) WithRetryTime(d time.Duration) *mutex {
+	m.retryTime = d
+	return m
 }
 
 // 先判断是否为当前线程重复获取锁，如果是则返回OK。 (可重入锁)
@@ -56,7 +63,7 @@ func (m *mutex) Lock() error {
 			return nil
 		}
 
-		time.Sleep(retryInterval)
+		time.Sleep(m.retryTime)
 	}
 }
 
