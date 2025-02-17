@@ -6,16 +6,14 @@ import (
 )
 
 var (
+	rd = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	CharsetLowerLetter = []rune("abcdefghijklmnopqrstuvwxyz")
 	CharsetUpperLetter = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	CharsetLetter      = append(CharsetLowerLetter, CharsetUpperLetter...)
 	CharsetNumber      = []rune("0123456789")
 	CharsetAlpha       = append(CharsetLetter, CharsetNumber...)
-	CharsetSpecial     = []rune("!@#$%^&*()_+-=[]{}|;':\",./<>?")
-	CharsetAll         = append(CharsetAlpha, CharsetSpecial...)
 )
-
-var rd = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // 随机数
 func RandInt(max int) int {

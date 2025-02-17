@@ -14,27 +14,18 @@ func StrLen(s string) int {
 	return utf8.RuneCountInString(s)
 }
 
-// 是否为空值
-func IsEmpty[E comparable](e E) bool {
-	var zero E
-	return zero == e
-}
-
-// 除法。保留x位小数。（最后一位不四舍五入）
-func Div[T Integer | Float](a, b T, decimals int) float64 {
+// 除法。保留x位小数
+func Div[T Number](a, b T, decimals uint8) float64 {
 	if b == 0 {
 		return 0
 	}
 	return Round(float64(a)/float64(b), decimals)
 }
 
-// 保留x位小数（最后一位不四舍五入）
-func Round(n float64, decimals int) float64 {
-	if decimals < 0 || decimals > 10 {
-		panic("decimals is out of range")
-	}
-	shift := math.Pow(10, float64(decimals))
-	return math.Trunc(n*shift) / shift
+// 保留x位小数
+func Round(n float64, decimals uint8) float64 {
+	ratio := math.Pow(10, float64(decimals))
+	return math.Round(n*ratio) / ratio
 }
 
 // 结构体、结构体指针、结构体切片
@@ -80,9 +71,9 @@ func GetTags(v any, tag string) []string {
 }
 
 // 追踪调用位置
-func Callers(skip int) []string {
-	pc := make([]uintptr, 10)
-	n := runtime.Callers(skip, pc)
+func Callers() []string {
+	pc := make([]uintptr, 8)
+	n := runtime.Callers(3, pc)
 	if n == 0 {
 		return nil
 	}
@@ -96,13 +87,11 @@ func Callers(skip int) []string {
 			continue
 		}
 		file, line := fn.FileLine(p)
-		if !strings.Contains(file, "/go/src/") && !strings.Contains(file, "/go/pkg/") {
-			arr := strings.Split(file, "/")
-			if len(arr) > 3 {
-				file = strings.Join(arr[len(arr)-3:], "/")
-			}
-			callers = append(callers, fmt.Sprintf("%s:%d", file, line))
+		arr := strings.Split(file, "/")
+		if len(arr) > 3 {
+			file = strings.Join(arr[len(arr)-3:], "/")
 		}
+		callers = append(callers, fmt.Sprintf("%s:%d", file, line))
 	}
 
 	return callers

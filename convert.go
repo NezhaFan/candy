@@ -3,52 +3,10 @@ package candy
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
-	"math/big"
-	"net"
+	"encoding/json"
 	"strconv"
-	"unsafe"
 )
-
-// bytes转字符串
-func BytesToString(b []byte) string {
-	if len(b) == 0 {
-		return ""
-	}
-	return unsafe.String(&b[0], len(b))
-}
-
-// 字符串转bytes
-func StringToBytes(s string) (b []byte) {
-	if s == "" {
-		return nil
-	}
-	return unsafe.Slice(unsafe.StringData(s), len(s))
-}
-
-// 浮点数转字符串
-func FloatToString(n float64) string {
-	return strconv.FormatFloat(float64(n), 'f', -1, 64)
-}
-
-// base64
-func Base64(src []byte) string {
-	return base64.StdEncoding.EncodeToString(src)
-}
-
-// 数字转62进制字符串
-func EncodeNumber(n uint64) string {
-	const base = 62
-	const charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	var result []byte
-	for n > 0 {
-		r := n % base
-		n /= base
-		result = append(result, charset[r])
-	}
-	return BytesToString(result)
-}
 
 // 加密
 func Sha256(s string) string {
@@ -64,19 +22,8 @@ func HmacSha256(s string, key []byte) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// IPV4 点分十进制 转 十进制
-func Ip2long(ip string) int {
-	i := big.NewInt(0).SetBytes(net.ParseIP(ip).To4()).Int64()
-	return int(i)
-}
-
-// IPV4 十进制 => 点分十进制
-func Long2ip(ip int) string {
-	return net.IPv4(byte(ip>>24), byte(ip>>16), byte(ip>>8), byte(ip)).String()
-}
-
 // 蛇形命名，下划线格式
-func SnakeCase(s string) string {
+func ToSnakeCase(s string) string {
 	b := make([]byte, 0, len(s)+3)
 	for i := 0; i < len(s); i++ {
 		v := s[i]
@@ -89,5 +36,205 @@ func SnakeCase(s string) string {
 		b = append(b, v)
 	}
 
-	return BytesToString(b)
+	return string(b)
+}
+
+func ToString(i any) string {
+	switch x := i.(type) {
+	case nil:
+		return ""
+	case string:
+		return x
+	case float64:
+		return strconv.FormatFloat(x, 'f', -1, 64)
+	case float32:
+		return strconv.FormatFloat(float64(x), 'f', -1, 32)
+	case int:
+		return strconv.FormatInt(int64(x), 10)
+	case int64:
+		return strconv.FormatInt(x, 10)
+	case int32:
+		return strconv.FormatInt(int64(x), 10)
+	case int16:
+		return strconv.FormatInt(int64(x), 10)
+	case int8:
+		return strconv.FormatInt(int64(x), 10)
+	case uint:
+		return strconv.FormatUint(uint64(x), 10)
+	case uint64:
+		return strconv.FormatUint(uint64(x), 10)
+	case uint32:
+		return strconv.FormatUint(uint64(x), 10)
+	case uint16:
+		return strconv.FormatUint(uint64(x), 10)
+	case uint8:
+		return strconv.FormatUint(uint64(x), 10)
+	case bool:
+		return strconv.FormatBool(x)
+	case []byte:
+		return string(x)
+	default:
+		b, _ := json.Marshal(i)
+		return string(b)
+	}
+}
+
+func ToInt(i any) int {
+	switch x := i.(type) {
+	case nil:
+		return 0
+	case string:
+		y, _ := strconv.Atoi(x)
+		return y
+	case float64:
+		return int(x)
+	case float32:
+		return int(x)
+	case int:
+		return x
+	case int64:
+		return int(x)
+	case int32:
+		return int(x)
+	case int16:
+		return int(x)
+	case int8:
+		return int(x)
+	case uint:
+		return int(x)
+	case uint64:
+		return int(x)
+	case uint32:
+		return int(x)
+	case uint16:
+		return int(x)
+	case uint8:
+		return int(x)
+	case bool:
+		if x {
+			return 1
+		}
+		return 0
+	default:
+		return 0
+	}
+}
+
+func ToUInt(i any) uint {
+	switch x := i.(type) {
+	case nil:
+		return 0
+	case string:
+		y, _ := strconv.Atoi(x)
+		return uint(y)
+	case float64:
+		return uint(x)
+	case float32:
+		return uint(x)
+	case int:
+		return uint(x)
+	case int64:
+		return uint(x)
+	case int32:
+		return uint(x)
+	case int16:
+		return uint(x)
+	case int8:
+		return uint(x)
+	case uint:
+		return x
+	case uint64:
+		return uint(x)
+	case uint32:
+		return uint(x)
+	case uint16:
+		return uint(x)
+	case uint8:
+		return uint(x)
+	case bool:
+		if x {
+			return 1
+		}
+		return 0
+	default:
+		return 0
+	}
+}
+
+func ToFloat32(i any) float32 {
+	switch x := i.(type) {
+	case nil:
+		return 0
+	case float32:
+		return x
+	case float64:
+		return float32(x)
+	case int64:
+		return float32(x)
+	case int32:
+		return float32(x)
+	case int16:
+		return float32(x)
+	case int8:
+		return float32(x)
+	case uint:
+		return float32(x)
+	case uint64:
+		return float32(x)
+	case uint32:
+		return float32(x)
+	case uint16:
+		return float32(x)
+	case uint8:
+		return float32(x)
+	case bool:
+		if x {
+			return 1
+		}
+		return 0
+	case string:
+		v, _ := strconv.ParseFloat(x, 32)
+		return float32(v)
+	default:
+		return 0
+	}
+}
+
+func ToFloat64(i any) float64 {
+	switch x := i.(type) {
+	case nil:
+		return 0
+	case float32:
+		return float64(x)
+	case float64:
+		return x
+	case int64:
+		return float64(x)
+	case int32:
+		return float64(x)
+	case int16:
+		return float64(x)
+	case int8:
+		return float64(x)
+	case uint:
+		return float64(x)
+	case uint64:
+		return float64(x)
+	case uint32:
+		return float64(x)
+	case uint16:
+		return float64(x)
+	case uint8:
+		return float64(x)
+	case bool:
+		if x {
+			return 1
+		}
+		return 0
+	case string:
+		v, _ := strconv.ParseFloat(x, 32)
+		return float64(v)
+	default:
+		return 0
+	}
 }

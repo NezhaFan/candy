@@ -2,7 +2,7 @@ package candy
 
 import "sync"
 
-type Map[K comparable, V interface{}] struct {
+type Map[K comparable, V any] struct {
 	data sync.Map
 }
 

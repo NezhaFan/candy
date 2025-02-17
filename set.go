@@ -11,40 +11,44 @@ type Set[E comparable] struct {
 
 func (s *Set[E]) Set(es ...E) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.data == nil {
 		s.data = make(map[E]struct{})
 	}
 	for _, e := range es {
 		s.data[e] = struct{}{}
 	}
-
-	s.mu.Unlock()
 }
 
 func (s *Set[E]) Del(es ...E) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	for _, e := range es {
 		delete(s.data, e)
 	}
-	s.mu.Unlock()
 }
 
 func (s *Set[E]) Has(e E) bool {
 	s.mu.RLock()
+	defer s.mu.RUnlock()
 	_, ok := s.data[e]
-	s.mu.RUnlock()
 	return ok
 }
 
 func (s *Set[E]) Len() int {
 	s.mu.RLock()
-	l := len(s.data)
-	s.mu.RUnlock()
-	return l
+	defer s.mu.RUnlock()
+	return len(s.data)
 }
 
-func (s *Set[E]) Clear() {
-	s.mu.Lock()
-	clear(s.data)
-	s.mu.Unlock()
+func (s *Set[E]) Keys() []E {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	keys := make([]E, 0, len(s.data))
+	for k := range s.data {
+		keys = append(keys, k)
+	}
+
+	return keys
 }

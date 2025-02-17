@@ -2,108 +2,99 @@ package candy
 
 import "time"
 
-const (
-	Datetime = "2006-01-02 15:04:05"
-)
-
-type Time struct {
-	t time.Time
+type Timex struct {
+	Time time.Time
 }
 
-func NewTime[T string | int64 | int | time.Time](init T) Time {
-	var v any = init
-	switch v := v.(type) {
-	case string:
-		t, _ := time.ParseInLocation(time.DateTime, v, time.Local)
-		return Time{t: t}
-	case int:
-		return Time{t: time.Unix(int64(v), 0)}
-	case int64:
-		return Time{t: time.Unix(v, 0)}
-	case time.Time:
-		return Time{t: v}
-	}
-	return Time{t: time.Now()}
+func Now() Timex {
+	return Timex{time.Now()}
 }
 
-func Now() Time {
-	return Time{t: time.Now()}
+// 注意字符串必须为 日期 + 时间 格式
+func NewTimexByString(dt string) Timex {
+	t, _ := time.ParseInLocation(time.DateTime, dt, time.Local)
+	return Timex{t}
 }
 
-// timex转Time
-func (t Time) Time() time.Time {
-	return t.t
+func NewTimexByUnix[E int | uint | int64 | uint64](i E) Timex {
+	return Timex{time.Unix(int64(i), 0)}
 }
 
 // timex转字符串
-func (t Time) String() string {
-	return t.t.Format(Datetime)
+func (t Timex) ToString() string {
+	return t.Time.Format(time.DateTime)
 }
 
 // timex转时间戳
-func (t Time) Unix() int64 {
-	return t.t.Unix()
-}
-
-// 加 秒/分/时
-func (t Time) Add(d time.Duration) Time {
-	t.t = t.t.Add(d)
-	return t
+func (t Timex) ToUnix() int64 {
+	return t.Time.Unix()
 }
 
 // 加天数
-func (t Time) AddDay(i int) Time {
-	t.t = t.t.AddDate(0, 0, i)
+func (t Timex) AddDay(i int) Timex {
+	t.Time = t.Time.AddDate(0, 0, i)
 	return t
 }
 
 // 加月份
-func (t Time) AddMonth(i int) Time {
-	t.t = t.t.AddDate(0, i, 0)
+func (t Timex) AddMonth(i int) Timex {
+	t.Time = t.Time.AddDate(0, i, 0)
 	return t
 }
 
 // 加年
-func (t Time) AddYear(i int) Time {
-	t.t = t.t.AddDate(i, 0, 0)
+func (t Timex) AddYear(i int) Timex {
+	t.Time = t.Time.AddDate(i, 0, 0)
 	return t
 }
 
 // 当日的开始时间 (00:00:00)
-func (t Time) DayStart() Time {
-	y, m, d := t.t.Date()
-	t.t = time.Date(y, m, d, 0, 0, 0, 0, time.Local)
+func (t Timex) DayStart() Timex {
+	y, m, d := t.Time.Date()
+	t.Time = time.Date(y, m, d, 0, 0, 0, 0, time.Local)
 	return t
 }
 
-// 当日的结束时间 (23:59:59)
-func (t Time) DayEnd() Time {
-	return t.DayStart().Add(time.Hour*24 - time.Nanosecond)
+// 当日的结束时间 (23:59:59 999999)
+func (t Timex) DayEnd() Timex {
+	t.Time = t.DayStart().Time.Add(time.Hour*24 - time.Nanosecond)
+	return t
 }
 
 // 当周一的开始时间
-func (t Time) WeekStart() Time {
-	w := t.t.Weekday()
-	if w == 0 {
+func (t Timex) WeekStart() Timex {
+	w := t.Time.Weekday()
+	if w == time.Sunday {
 		w = 7
 	}
-	t.t = t.t.Add(-time.Duration(w-1) * time.Hour * 24)
+	y, m, d := t.Time.Date()
+	t.Time = time.Date(y, m, d-int(w)+1, 0, 0, 0, 0, time.Local)
 	return t.DayStart()
 }
 
 // 当周日的结束时间
-func (t Time) WeekEnd() Time {
-	return t.WeekStart().Add(time.Hour*24*7 - time.Nanosecond)
+func (t Timex) WeekEnd() Timex {
+	t.Time = t.WeekStart().Time.Add(time.Hour*24*7 - time.Nanosecond)
+	return t
 }
 
 // 当月的开始时间 (00:00:00)
-func (t Time) MonthStart() Time {
-	y, m, _ := t.t.Date()
-	t.t = time.Date(y, m, 1, 0, 0, 0, 0, t.t.Location())
+func (t Timex) MonthStart() Timex {
+	y, m, _ := t.Time.Date()
+	t.Time = time.Date(y, m, 1, 0, 0, 0, 0, t.Time.Location())
 	return t
 }
 
 // 当月的结束时间 (23:59:59)
-func (t Time) MonthEnd() Time {
-	return t.MonthStart().AddMonth(1).Add(-time.Nanosecond)
+func (t Timex) MonthEnd() Timex {
+	t.Time = t.MonthStart().AddMonth(1).Time.Add(-time.Nanosecond)
+	return t
+}
+
+func (t Timex) GetDate() string {
+	return t.Time.Format(time.DateOnly)
+}
+
+func (t Timex) GetTime() string {
+	return t.Time.Format(time.TimeOnly)
 }
